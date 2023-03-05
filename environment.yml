@@ -1,0 +1,16 @@
+name: mottle
+channels:
+  - fastchan
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy=1.24.2=py39h7360e5f_0
+  - biopython=1.78=py39h3811e60_2
+  - faiss=1.7.1=py39cuda112h5ca99f2_1_cuda
+  - parasail-python=1.2.4=py39h98c8e45_1
+  - scipy=1.9.3=py39h32ae08f_0
+  - tqdm=4.62.3=pyhd8ed1ab_0
+  - lightgbm=3.3.3=py39h5a03fae_1
+  - tensorflow-base=2.6.0=cpu_py39h7e79a0b_2
+  - tensorflow-probability=0.15.0=pyhd8ed1ab_0
