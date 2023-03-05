@@ -6,6 +6,7 @@ Mottle is a tool for calculating an accurate substitution distance between highl
     git clone https://github.com/tphoward/Mottle_Repo.git
     cd Mottle_Repo
     conda env create -f environment.yml
+    conda activate mottle
 
 ## Usage
     usage: mottle.py [-h] [-i IN1] [-I IN2] [-o OUT] [--chunk_size CHUNK_SIZE] [--nchunks NCHUNKS] [--guide_chunks GUIDE_CHUNKS]
