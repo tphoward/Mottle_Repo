@@ -1,4 +1,4 @@
-# Mottle_Repo
+# Mottle
 
 Mottle is a bioinformatics tool for calculating an accurate substitution distance between highly divergent nucleic acid sequences.
 
