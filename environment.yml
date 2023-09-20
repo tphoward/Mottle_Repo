@@ -12,5 +12,5 @@ dependencies:
   - scipy=1.9.3=py39h32ae08f_0
   - tqdm=4.62.3=pyhd8ed1ab_0
   - lightgbm=3.3.3=py39h5a03fae_1
-  - tensorflow-base=2.6.0=cpu_py39h7e79a0b_2
+  - tensorflow-cpu
   - tensorflow-probability=0.15.0=pyhd8ed1ab_0
