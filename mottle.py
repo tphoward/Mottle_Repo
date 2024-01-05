@@ -47,10 +47,10 @@ parser.add_argument('--nleaves', type=np.uint, default=31, help='LightGBM number
 parser.add_argument('--learn_rate', type=np.uint, default=0.1, help='LightGBM learn rate')
 parser.add_argument('--subsamp', type=np.uint, default=1, help='LightGBM subsample proportion')
 parser.add_argument('--binpow', type=np.uint, default=64, help='Exponent for cluster discretisation')
-parser.add_argument('--learn_mult', type=np.uint, default=0.001, help='Tensorflow learning multiplier')
-parser.add_argument('--reltol', type=np.float_, default=1e-20, help='Tensorflow relative tolerace stopping codition')
+parser.add_argument('--learn_mult', type=float, default=0.001, help='Tensorflow learning multiplier')
+parser.add_argument('--reltol', type=float, default=1e-20, help='Tensorflow relative tolerace stopping codition')
 parser.add_argument('--maxiter', type=np.uint, default=100, help='Tensorflow maximum number of gradient descent iterations')
-parser.add_argument('--binthres', type=np.uint, default=0.75, help='Threshold for sequence inclusion into homology cluster')
+parser.add_argument('--binthres', type=float, default=0.75, help='Threshold for sequence inclusion into homology cluster')
 parser.add_argument('--prior_size', type=np.uint, default=10, help='Bias value for distance calculations where few alignments pass the filtering stage')
 parser.add_argument('--ncpu', type=np.uint, default=4, help='Number of cpu threads for intensive tasks')
 parser.add_argument('-v', '--verbose', action='store_true', help='Verbosity toggle')
@@ -165,6 +165,8 @@ def read_fasta(path, alphabet='guess'):
 def get_codex(encoding):
     """Return codex dictionary for selected encoding."""
     defval = 0+0j
+    sqhf = np.sqrt(0.5)
+    sqhfj = sqhf*1j
     if encoding == 'NA':
         alphabet = np.array([
             'A', 'T', 'U', 'C', 'G', 'Y', 'R', 'W',
@@ -182,11 +184,22 @@ def get_codex(encoding):
             'S', 'M', 'K', 'H', 'B', 'D', 'V', 'N', 'N'], dtype='<U1')
         defval = 'N'
     elif encoding == 'SQUARE':
-        alphabet = np.array(['A', 'T', 'U', 'C', 'G'], dtype='<U1')
-        encoded = np.array((1-1j, 1+1j, -1+1j, -1-1j), dtype=np.complex64)
+        alphabet = np.array([
+            'A', 'T', 'U', 'C', 'G', 'Y', 'R', 'W',
+            'S', 'K', 'M', 'D', 'V', 'H', 'B', 'X', 'N'], dtype='<U1')
+        encoded = np.array([
+            1-1j, 1+1j, 1+1j, -1+1j, -1-1j], dtype=np.complex64)
     elif encoding == 'MAFFT':
-        alphabet = np.array(['A', 'T', 'U', 'C', 'G'], dtype='<U1')
-        encoded = np.array((1j, -1j, -1, 1), dtype=np.complex64)
+        alphabet = np.array([
+            'A', 'T', 'U', 'C', 'G',
+            'Y', 'R', 'W', 'S',
+            'K', 'M', 'D', 'V',
+            'H', 'B', 'X', 'N'], dtype='<U1')
+        encoded = np.array([
+            1j, -1j, -1j, -1, 1,
+            -sqhf-sqhfj, sqhf+sqhfj, 0+0j, 0+0j,
+            sqhf-sqhfj, -sqhf+sqhfj, 1+0j, 0+1j,
+            -1+0j, 0-1j, 0+0j, 0+0j], dtype=np.complex64)
     elif encoding=='AG':
         alphabet = np.array(['A', 'T', 'U', 'C', 'G'], dtype='<U1')
         encoded = np.array((1, 0, 0, 0, 1j), dtype=np.complex64)
@@ -396,9 +409,10 @@ def calcpm(seq1, seq2=None):
     """Caculate probability of bases matching due to chance."""
     if seq2 is None:
         seq1, seq2 = seq1[:,0], seq1[:,1]
-    codex = {'A':0, 'T':1, 'U':1, 'C':2, 'G':3}
-    probmatch = np.bincount(codexmap(seq1, codex), minlength=4) / seq1.size
-    probmatch = probmatch * np.bincount(codexmap(seq2, codex), minlength=4) / seq2.size
+    codex = {'A':0, 'T':1, 'U':1, 'C':2, 'G':3, 'Y':4, 'R':4, 'W':4,
+             'S':4, 'K':4, 'M':4, 'D':4, 'V':4, 'H':4, 'B':4, 'X':4, 'N':4}
+    probmatch = np.bincount(codexmap(seq1, codex), minlength=5) / seq1.size
+    probmatch = probmatch * np.bincount(codexmap(seq2, codex), minlength=5) / seq2.size
     probmatch = probmatch.sum()
     probmatch
     return probmatch
@@ -685,7 +699,7 @@ def grad_desc2(comps, mean_preds, samp_vars, matches, pindels, probmatch=0.25, n
         out_poccs = destabil_binom(out_poccs)
         ngaps = out_poccs[...,-2] * clust_sizes * 1.5
         mtch = out_poccs[...,-1] * clust_sizes
-        pid = (mtch+(prior_size-ngaps)*probmatch) / (clust_sizes+prior_size-ngaps)
+        pid = (mtch+(prior_size-ngaps)*probmatch) / np.clip(clust_sizes+prior_size-ngaps, 1, None)
         pids.append(norm_pid(pid.max(), probmatch))
     return clustw, pids
 
@@ -910,19 +924,19 @@ clust_sizes = clustw.sum(0)
 mtch = matches.reshape(-1,1)
 pgs = pindels.reshape(-1,1)
 ngaps = np.sum(mtch*pgs, 0)
-pid = (mtch.sum(0)+(prior_size-ngaps)*probmatch) / (clust_sizes+prior_size-ngaps)
+pid = (mtch.sum(0)+(prior_size-ngaps)*probmatch) / np.clip(clust_sizes+prior_size-ngaps, 1, None)
 pids.append(norm_pid(pid.max(), probmatch))
 
 mtch = mean_preds.reshape(-1,1) * clustw
 pgs = pindels.reshape(-1,1) * clustw
 ngaps = np.sum(mtch*pgs, 0)
-pid = (mtch.sum(0)+(prior_size-ngaps)*probmatch) / (clust_sizes+prior_size-ngaps)
+pid = (mtch.sum(0)+(prior_size-ngaps)*probmatch) / np.clip(clust_sizes+prior_size-ngaps, 1, None)
 pids.append(norm_pid(pid.max(), probmatch))
 
 mtch = matches.reshape(-1,1) * clustw
 pgs = pindels.reshape(-1,1) * clustw
 ngaps = np.sum(mtch*pgs, 0)
-pid = (mtch.sum(0)+(prior_size-ngaps)*probmatch) / (clust_sizes+prior_size-ngaps)
+pid = (mtch.sum(0)+(prior_size-ngaps)*probmatch) / np.clip(clust_sizes+prior_size-ngaps, 1, None)
 pids.append(norm_pid(pid.max(), probmatch))
 
 pids = np.array(pids)

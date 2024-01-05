@@ -75,3 +75,11 @@ Mottle is a bioinformatics tool for calculating an accurate substitution distanc
 
     Mottle Copyright 2023 Newcastle University. All Rights Reserved. Authors: Alisa Prusokiene, Neil Boonham, Adrian Fox, and Thomas P. Howard.
     The initial repository for this software is located at https://github.com/tphoward/Mottle_Repo.
+
+## Quickstart
+After installation, run the following
+    python mottle.py tests/rfam/0.1-0 tests/rfam/0.1-1
+    python mottle.py tests/snps/tmv.fna tests/snps/tmv.fna --prior_size 0
+these should return approximately 0.10348 and 0.0 respectively.
+
+
